@@ -36,19 +36,19 @@ class fileReader():
             
 
     def getOutputTrain(self):
-        outputTrain = self.output[0:int(len(self.output)/2)]
+        outputTrain = self.output[200: len(self.output)]
         return outputTrain
     
     def getInputTrain(self):
-        inputTrain = self.input[0:int(len(self.input)/2)]
+        inputTrain = self.input[200:len(self.input)]
         return inputTrain
     
     def getOutputTest(self):
-        outputTest = self.output[int(len(self.output)/2): len(self.output)]
+        outputTest = self.output[0: 200]
         return outputTest
     
     def getInputTest(self):
-        inputTest = self.input[int(len(self.input)/2): len(self.input)]
+        inputTest = self.input[0: 200]
         return inputTest
     
     

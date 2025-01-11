@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
     if action == "1":
         rate = 0
-        for i in range(6):
+        for i in range(5):
             net.train()
             print(net.test())
     
