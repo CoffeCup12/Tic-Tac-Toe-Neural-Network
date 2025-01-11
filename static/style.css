@@ -1,0 +1,45 @@
+body{
+    display: grid;
+    justify-content: center;
+    align-items: center;
+    margin: 0;
+}
+
+.title{
+    text-align: center;
+}
+.board{
+    margin-top: 10%;
+    display: inline-grid;
+    grid-template-columns: auto auto auto;
+    
+}
+
+.cell{
+    height: 3cm;
+    width: 3cm;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 3px black solid;
+    font-size: 2cm;
+    cursor: pointer;
+}
+
+.cell:hover{
+    background-color: rgb(181, 181, 182);
+}
+
+.messageBox{
+
+    height: 3cm;
+    width: 9.43cm;
+    background-color: rgb(153, 155, 156);
+    text-align: center;
+    font-size: large;
+
+}
+
+.messageBox:hover{
+    background-color: rgb(98, 99, 99);
+}
