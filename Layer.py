@@ -31,15 +31,15 @@ class hiddenLayer(layer):
         self.bias = np.random.randn(numNodes, 1)
     
     def forwadPass(self, inputLayer):  
-        #self.layer = sigmoid(wx + b)
+        #self.layer = wx + b
         self.layer = self.weights.dot(inputLayer.getLayer()) + self.bias
-        #sigmoid function(activation)
-        self.layer = 1/(1 + np.e ** (-1*self.layer))
+        #RELU activation function
+        self.layer[self.layer < 0] = 0
 
     def backwardPass(self, lastLayer, nextLayer, nextDelta, learningRate):
 
         #get delta
-        delta = self.getDelta(nextLayer, nextDelta)
+        delta = self.getDelta(nextLayer, nextDelta, lastLayer)
         #dW = delta dot x^T
         sigmaWeight = np.dot(delta, np.transpose(lastLayer.getLayer()))
         #dB = delta
@@ -52,14 +52,17 @@ class hiddenLayer(layer):
         #return the delta calculated in this backward pass
         return delta
     
-    def getDelta(self, nextlayer, nextDelta):
+    def getDelta(self, nextlayer, nextDelta, lastLayer):
         #delta = (nextLayer's weight)^T dot (nextLayer's delta) * derivative of sigmoid 
-        return np.dot(np.transpose(nextlayer.getWeight()), nextDelta) * self.derSigmoid()
+        return np.dot(np.transpose(nextlayer.getWeight()), nextDelta) * self.derReLu(lastLayer.getLayer())
     
-    def derSigmoid(self):
-        #z = wx + b
-        #derivatiev of sigmoid = sigmoid(z) * (1-sigmoid(z))
-        return self.layer * (1 - self.layer)
+    def derReLu(self, x):
+        newLayer = np.copy(x)
+        newLayer[newLayer > 0] = 1
+        newLayer[newLayer < 0] = 0
+        return newLayer
+    
+    
     
     def getWeight(self):
         return self.weights
@@ -82,8 +85,9 @@ class outputLayer(hiddenLayer):
         return (np.e ** inputLayer)/np.sum(inputLayer)
     
     def forwadPass(self, inputLayer):
-        super().forwadPass(inputLayer)
-        return self.softmax(self.layer)
+        #self.layer = wx + b
+        self.layer = self.weights.dot(inputLayer.getLayer()) + self.bias
+        self.layer = 1/(1 + np.e ** (-1*self.layer))
     
     def backwardPass(self, lastLayer, learningRate, actual):
 
@@ -100,4 +104,8 @@ class outputLayer(hiddenLayer):
 
         #delta = (finalOutput - actualResult) * derivative of sigmoid 
         return (self.layer - actual) * self.derSigmoid()
+    def derSigmoid(self):
+        #z = wx + b
+        #derivatiev of sigmoid = sigmoid(z) * (1-sigmoid(z))
+        return self.layer * (1 - self.layer)
         

@@ -14,12 +14,12 @@ class game():
         self.count = 0
 
     def playerMove(self, input):
-        #temp implmenetation change later
         if self.board[input] == 0:
             self.board[input] = 1
             self.playerHand.append(input)
             
     def computerMove(self):
+        pass
         posInput = []
         for i in range(len(self.board)):
             if self.board[i] == 0:
@@ -30,6 +30,7 @@ class game():
         winRates = []
         for move in posInput:
             winRates.append(self.net.forwardCycle(move)[1])
+            print(self.net.forwardCycle(move))
         
         finalChoice = posInput[winRates.index(max(winRates))]
 
