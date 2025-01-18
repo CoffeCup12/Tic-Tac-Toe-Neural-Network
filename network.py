@@ -60,15 +60,17 @@ class netWork:
         self.h3.setBias(np.array(model.get('h3Bias')))
         self.outputLayer.setBias(np.array(model.get('outputBias')))
     
-    def transferFrom(self, network):
-        self.h1.setWeight(network.h1.getWeight().copy())
-        self.h2.setWeight(network.h2.getWeight().copy())
-        self.h3.setWeight(network.h3.getWeight().copy())
-        self.outputLayer.setWeight(network.outputLayer.getWeight().copy())
+    def transferFrom(self, source):
+        self.h1.setWeight(source.h1.getWeight().copy())
+        self.h2.setWeight(source.h2.getWeight().copy())
+        self.h3.setWeight(source.h3.getWeight().copy())
+        self.outputLayer.setWeight(source.outputLayer.getWeight().copy())
 
-        self.h1.setBias(network.h1.getBias().copy())
-        self.h2.setBias(network.h2.getBias().copy())
-        self.h3.setBias(network.h3.getBias().copy())
-        self.outputLayer.setBias(network.outputLayer.getBias().copy())
+        self.h1.setBias(source.h1.getBias().copy())
+        self.h2.setBias(source.h2.getBias().copy())
+        self.h3.setBias(source.h3.getBias().copy())
+        self.outputLayer.setBias(source.outputLayer.getBias().copy())
+
+        
 
 

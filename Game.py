@@ -24,33 +24,33 @@ class game():
     def checkWin(self, side):
         handSet = set(side)
         return any(win.issubset(handSet) for win in self.winState)
+    
+    def isDone(self):
+        return self.checkWin(self.playerO) or self.checkWin(self.playerX) or self.count >= 9
 
-    def getReward(self, state, action, player):
-
-        playerX = np.where(state == 1)[0].tolist()
-        playerO = np.where(state == -1)[0].tolist()
+    def getReward(self, action, player):
 
         if player == "playerO":
-            receiver = playerO
-            Opponent = playerX
+            receiver = self.playerO
+            Opponent = self.playerX
         else:
-            receiver = playerX
-            Opponent = playerO
+            receiver = self.playerX
+            Opponent = self.playerO
 
-        reward = 0.2
+        reward = 0
         
         if self.checkWin(receiver):
             reward = 1  # Maximum reward for winning
         elif self.checkWin(Opponent):
             reward = 0  # Minimum reward for losing
-        elif self.count >= 8:
-            reward = 0.5  # Reward for a draw
+        elif self.count >= 9:
+            reward = 0.6  # Reward for a draw
         else:
             # Intermediate Rewards
             reward += sum(0.05 for win in self.winState if win & set(receiver) and not win & set(Opponent))  # Reward for potential winning moves
             reward -= sum(0.05 for win in self.winState if win & set(Opponent) and not win & set(receiver))  
 
-                # Check for blocking opponent's potential winning move
+            # Check for blocking opponent's potential winning move
             action = int(action)
             OpponentHand = set(Opponent)
             receiverHand = set(receiver)
