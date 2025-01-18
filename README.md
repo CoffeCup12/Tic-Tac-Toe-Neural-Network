@@ -1,8 +1,9 @@
 # Tic-Tac-Toe-Neural-Network
-A MLP neural network that can play tic-tac-toe 
+A deep q neural network that can play tic-tac-toe 
 # How to use 
 Clone the respirtory and find app.py, run and click on the link in the terminal 
-# Credits 
-Trainning Dataset:
-Aha, D. (1991). Tic-Tac-Toe Endgame [Dataset]. UCI Machine Learning Repository. https://doi.org/10.24432/C5688J.
+# How to train your own model
+Find Trainning.py and run the file 
+# Current Result
+The model that comes with this file have learn some strategy of tic tac toe but are still far away from being good at the game 
 
