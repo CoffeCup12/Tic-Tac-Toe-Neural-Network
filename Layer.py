@@ -90,7 +90,7 @@ class outputLayer(hiddenLayer):
     def forwardPass(self, inputLayer):
         #self.layer = wx + b
         self.layer = self.weights.dot(inputLayer.getLayer()) + self.bias
-        #self.layer = 1/(1 + np.exp(-self.layer))
+        self.layer = 1/(1 + np.exp(-self.layer))
     
     def backwardPass(self, lastLayer, learningRate, loss):
 
