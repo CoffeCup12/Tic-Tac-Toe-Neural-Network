@@ -85,12 +85,12 @@ class outputLayer(hiddenLayer):
         super().__init__(numNodes, numNodesLast)
     
     def softmax(self, inputLayer):
-        return (np.e ** inputLayer)/np.sum(inputLayer)
+        return (np.e ** inputLayer) / np.sum(inputLayer)
     
     def forwardPass(self, inputLayer):
         #self.layer = wx + b
         self.layer = self.weights.dot(inputLayer.getLayer()) + self.bias
-        self.layer = 1/(1 + np.exp(-self.layer))
+        self.layer = np.tanh(self.layer)
     
     def backwardPass(self, lastLayer, learningRate, loss):
 
@@ -110,6 +110,7 @@ class outputLayer(hiddenLayer):
     
     def getDelta(self, loss):
 
-        #delta = (finalOutput - actualResult) * derivative of sigmoid 
-        return loss * self.layer * (1 - self.layer)
+        #delta = (finalOutput - actualResult) * derivative of tanh
+        return loss * (1 - self.layer ** 2)
+
         

@@ -42,13 +42,13 @@ class game():
         if self.checkWin(receiver):
             reward = 1  # Maximum reward for winning
         elif self.checkWin(Opponent):
-            reward = 0  # Minimum reward for losing
+            reward = -1  # Minimum reward for losing
         elif self.count >= 9:
             reward = 0.6  # Reward for a draw
         else:
             # Intermediate Rewards
-            reward += sum(0.05 for win in self.winState if win & set(receiver) and not win & set(Opponent))  # Reward for potential winning moves
-            reward -= sum(0.05 for win in self.winState if win & set(Opponent) and not win & set(receiver))  
+            reward += sum(0.01 for win in self.winState if win & set(receiver) and not win & set(Opponent))  # Reward for potential winning moves
+            reward -= sum(0.01 for win in self.winState if win & set(Opponent) and not win & set(receiver))  
 
             # Check for blocking opponent's potential winning move
             action = int(action)
@@ -60,7 +60,7 @@ class game():
                     #print("block")
                     break
                 elif len(win & OpponentHand) == 2 and len(win & receiverHand) == 0:
-                    reward = 0
+                    reward = -0.6
                     #print("failed to block")
         return reward
 
