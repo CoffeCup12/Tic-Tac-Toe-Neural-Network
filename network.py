@@ -71,15 +71,4 @@ class netWork:
         self.h3.setBias(network.h3.getBias().copy())
         self.outputLayer.setBias(network.outputLayer.getBias().copy())
 
-    # def update(self, tau, fileName):
-    #     self.loadModel(fileName)
-    #     self.h1.weights = tau * self.h1.weights + (1 - tau) * self.h1.weights
-    #     self.h2.weights = tau * self.h2.weights + (1 - tau) * self.h2.weights
-    #     self.h3.weights = tau * self.h3.weights + (1 - tau) * self.h3.weights
-    #     self.outputLayer.weights = tau * self.outputLayer.weights + (1 - tau) * self.outputLayer.weights
-
-    #     self.h1.bias = tau * self.h1.bias + (1 - tau) * self.h1.bias
-    #     self.h2.bias = tau * self.h2.bias + (1 - tau) * self.h2.bias
-    #     self.h3.bias = tau * self.h3.bias + (1 - tau) * self.h3.bias
-    #     self.outputLayer.bias = tau * self.outputLayer.bias + (1 - tau) * self.outputLayer.bias
 

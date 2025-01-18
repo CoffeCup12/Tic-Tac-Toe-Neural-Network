@@ -128,15 +128,8 @@ def displayBoard(board):
 
 for episode in range(totalEpisodes):
     
-    if(myGame.checkWin(myGame.playerO)):
-        percentOWinning += 1
-    elif(myGame.checkWin(myGame.playerX)):
-        pass
-    else:
-        percentDraw += 1
     if(episode % 100 == 0):
         displayBoard(myGame.getBoard())
-        print("percent draw:", percentDraw/(episode+1))
         print("Episode: ", episode)
         print()
 
@@ -169,81 +162,3 @@ qNetPlayerX.storeModel("ModelX.json")
 print("Player O winning percentage: ", percentOWinning/totalEpisodes)
 print("Draw percentage: ", percentDraw/totalEpisodes)
 print("Training Complete")
-
-# import network
-# import Game
-# import numpy as np    
-# import random
-# from tqdm import tqdm
-# from collections import deque
-
-# # Hyperparameters
-# batchSize = 100
-# gamma = 0.99
-# epsMax = 1
-# eps = epsMax
-# epsMin = 0.01
-# epsDecay = 0.001
-# targetUpdate = 10
-# memorySize = 600
-# totalEpisodes = 1000
-# learningRate = 0.1
-# tau = 0.01  # Soft update parameter
-
-# qNet = network.netWork("playerO")
-# targetNet = network.netWork("target")
-
-# memory = deque(maxlen=memorySize)
-# myGame = Game.game()
-
-# def getExperience(state, action, name):
-#     # Play and store result
-#     if name == "playerX":
-#         myGame.playerXMove(action)
-#         reward, done = myGame.getReward(state, action, name)
-#     else:
-#         myGame.playerOMove(action)
-#         reward, done = myGame.getReward(state, action, name)
-
-#     nextState = myGame.getBoard()
-#     return state, action, reward, nextState, done
-
-# for episode in range(totalEpisodes):
-#     myGame.reset()
-#     for step in range(9):
-#         currentState = myGame.getBoard().copy()
-#         actionSpace = myGame.getActionSpace(currentState)
-
-#         if np.random.rand() <= eps:
-#             action = np.random.choice(actionSpace)  # Explore
-#         else:
-#             q_values = qNet.forwardCycle(currentState)
-#             action = myGame.getPredictAction(actionSpace, q_values)  # Exploit
-                
-#         experience = getExperience(currentState, action, qNet.getName())
-#         memory.append(experience)
-
-#         if len(memory) > batchSize:
-#             sampleBatch = random.sample(memory, batchSize)
-#             for state, action, reward, nextState, done in sampleBatch:
-#                 actualQs = qNet.forwardCycle(state)
-#                 targetQs = actualQs.copy()
-#                 if done:
-#                     targetQs[action] = reward
-#                 else:
-#                     nextQ = targetNet.forwardCycle(nextState)
-#                     targetQs[action] = reward + gamma * np.max(nextQ)
-                        
-#                 gradients = learningRate * (targetQs - actualQs)
-#                 qNet.backpropagation(gradients)     
-
-#         if experience[4]:
-#             break
-        
-#     if episode % targetUpdate == 0:
-#         # Soft update target network
-#         qNet.storeModel('modelO.json')
-#         targetNet.update(tau, 'modelO.json')
-        
-#     if eps > epsMin:
-#         eps *= np.exp(-epsDecay * episode)
