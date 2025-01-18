@@ -27,14 +27,16 @@ class hiddenLayer(layer):
         super().__init__(numNodes)
 
         #generate random weights and bias
-        self.weights = np.random.randn(numNodes, numNodesLast)
+        #self.weights = np.random.randn(numNodes, numNodesLast)
+        # He initialization for weights 
+        self.weights = np.random.randn(numNodes, numNodesLast) * np.sqrt(2 / numNodesLast)
         self.bias = np.random.randn(numNodes, 1)
     
-    def forwadPass(self, inputLayer):  
+    def forwardPass(self, inputLayer):  
         #self.layer = wx + b
         self.layer = self.weights.dot(inputLayer.getLayer()) + self.bias
-        #RELU activation function
-        self.layer[self.layer < 0] = 0
+        #leaky RELU activation function
+        self.layer[self.layer < 0] *= 0.01
 
     def backwardPass(self, lastLayer, nextLayer, nextDelta, learningRate):
 
@@ -45,6 +47,11 @@ class hiddenLayer(layer):
         #dB = delta
         sigmaBias = delta
 
+        #clip gradient
+        max_grad = 1.0 
+        sigmaWeight = np.clip(sigmaWeight, -max_grad, max_grad) 
+        sigmaBias = np.clip(sigmaBias, -max_grad, max_grad)
+
         #update weights and bias
         self.weights = self.weights - (learningRate * sigmaWeight)
         self.bias = self.bias - (learningRate * sigmaBias)
@@ -53,15 +60,11 @@ class hiddenLayer(layer):
         return delta
     
     def getDelta(self, nextlayer, nextDelta, lastLayer):
-        #delta = (nextLayer's weight)^T dot (nextLayer's delta) * derivative of sigmoid 
-        return np.dot(np.transpose(nextlayer.getWeight()), nextDelta) * self.derReLu(lastLayer.getLayer())
+        #delta = (nextLayer's weight)^T dot (nextLayer's delta) * derivative of RELU 
+        return np.dot(np.transpose(nextlayer.getWeight()), nextDelta) * self.derRelu(self.layer)
     
-    def derReLu(self, x):
-        newLayer = np.copy(x)
-        newLayer[newLayer > 0] = 1
-        newLayer[newLayer < 0] = 0
-        return newLayer
-    
+    def derRelu(self, x):
+        return np.where(x > 0, 1, 0.01)
     
     
     def getWeight(self):
@@ -84,28 +87,29 @@ class outputLayer(hiddenLayer):
     def softmax(self, inputLayer):
         return (np.e ** inputLayer)/np.sum(inputLayer)
     
-    def forwadPass(self, inputLayer):
+    def forwardPass(self, inputLayer):
         #self.layer = wx + b
         self.layer = self.weights.dot(inputLayer.getLayer()) + self.bias
-        self.layer = 1/(1 + np.e ** (-1*self.layer))
+        #self.layer = 1/(1 + np.exp(-self.layer))
     
-    def backwardPass(self, lastLayer, learningRate, actual):
+    def backwardPass(self, lastLayer, learningRate, loss):
 
-        delta = self.getDelta(actual)
+        delta = self.getDelta(loss)
 
         sigmaWeight = np.dot(delta, np.transpose(lastLayer.getLayer()))
         sigmaBias = delta
+
+        #clip gradient
+        max_grad = 1.0 
+        sigmaWeight = np.clip(sigmaWeight, -max_grad, max_grad) 
+        sigmaBias = np.clip(sigmaBias, -max_grad, max_grad)
         
         #update weights and bias 
         self.weights = self.weights - (learningRate * sigmaWeight)
         self.bias = self.bias - (learningRate * sigmaBias)
     
-    def getDelta(self, actual):
+    def getDelta(self, loss):
 
         #delta = (finalOutput - actualResult) * derivative of sigmoid 
-        return (self.layer - actual) * self.derSigmoid()
-    def derSigmoid(self):
-        #z = wx + b
-        #derivatiev of sigmoid = sigmoid(z) * (1-sigmoid(z))
-        return self.layer * (1 - self.layer)
+        return loss * self.layer * (1 - self.layer)
         

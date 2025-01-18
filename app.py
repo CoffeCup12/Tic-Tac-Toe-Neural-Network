@@ -1,7 +1,8 @@
 from flask import Flask, request, jsonify, render_template
 import Game
+import network
 
-myGame = Game.game()
+myGame = Game.backend()
 app = Flask(__name__)
 
 @app.route('/')

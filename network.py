@@ -5,62 +5,31 @@ import FileReader
 
 class netWork:
     
-    def __init__(self):
+    def __init__(self, name):
         self.inputLayer = Layer.inputLayer(9)
-        self.h1 = Layer.hiddenLayer(16,9)
-        self.h2 = Layer.hiddenLayer(16,16)
-        self.h3 = Layer.hiddenLayer(16,16)
-        self.outputLayer = Layer.outputLayer(2,16)
-
-        self.reader = FileReader.fileReader()
-        self.reader.read()
+        self.h1 = Layer.hiddenLayer(45,9)
+        self.h2 = Layer.hiddenLayer(45,45)
+        self.h3 = Layer.hiddenLayer(27,45)
+        self.outputLayer = Layer.outputLayer(9,27)
+        self.name = name
+    def getName(self):
+        return self.name
     
     def forwardCycle(self, input):
         self.inputLayer.resetLayer(input)
-        self.h1.forwadPass(self.inputLayer)
-        self.h2.forwadPass(self.h1)
-        self.h3.forwadPass(self.h2)
-        self.outputLayer.forwadPass(self.h3)
+        self.h1.forwardPass(self.inputLayer)
+        self.h2.forwardPass(self.h1)
+        self.h3.forwardPass(self.h2)
+        self.outputLayer.forwardPass(self.h3)
         return self.outputLayer.getLayer()
     
-    def backprobagation(self, actual):
-        learningRate = 0.1
-
-        self.outputLayer.backwardPass(self.h1, learningRate, actual)
-        nextDelta = self.h3.backwardPass(self.h2, self.outputLayer, self.outputLayer.getDelta(actual),learningRate)
+    def backpropagation(self, loss, learningRate):
+        self.outputLayer.backwardPass(self.h3, learningRate, loss)
+        nextDelta = self.h3.backwardPass(self.h2, self.outputLayer, self.outputLayer.getDelta(loss),learningRate)
         nextDelta = self.h2.backwardPass(self.h1, self.h3, nextDelta, learningRate)
         self.h1.backwardPass(self.inputLayer, self.h2, nextDelta, learningRate)
-
-    def lossfunction(self, actual, result):
-        return -np.sum(actual * np.log(result) + (1-actual) * np.log(1-result))/np.size(actual)  
     
-    def train(self):
-
-        feed = self.reader.getInputTrain()
-        actual = self.reader.getOutputTrain()
-        
-        for i in range(len(feed)):
-            for j in range(20):
-                self.forwardCycle(feed[i])
-                self.backprobagation(actual[i])
-
-    def test(self):
-        feed = self.reader.getInputTest()
-
-        actual = self.reader.getOutputTest()
-        
-        count = 0
-        for i in range(len(feed)):
-            result = self.forwardCycle(feed[i])
-            #if self.lossfunction(actual[i], self.outputLayer.getLayer()) > 1:
-            if abs(result[0] - actual[i][0]) > 0.5:
-            #     print(self.outputLayer.getLayer())
-            #     print(actual[i])
-            #     print()
-                 count += 1
-        return count/len(feed)
-    
-    def storeModel(self):
+    def storeModel(self, fileName):
 
         model = {
             "h1Weight" : self.h1.getWeight().tolist(),
@@ -73,12 +42,12 @@ class netWork:
             "outputBias" : self.outputLayer.getBias().tolist(),
         }
 
-        with open('model.json', 'w') as outfile:
+        with open(fileName, 'w') as outfile:
             json.dump(model, outfile)
 
-    def loadModel(self):
+    def loadModel(self, fileName):
 
-        with open('model.json', 'r') as infile:
+        with open(fileName, 'r') as infile:
             model = json.load(infile)
         
         self.h1.setWeight(np.array(model.get('h1Weight')))
@@ -90,28 +59,27 @@ class netWork:
         self.h2.setBias(np.array(model.get('h2Bias')))
         self.h3.setBias(np.array(model.get('h3Bias')))
         self.outputLayer.setBias(np.array(model.get('outputBias')))
-        
-     
     
+    def transferFrom(self, network):
+        self.h1.setWeight(network.h1.getWeight().copy())
+        self.h2.setWeight(network.h2.getWeight().copy())
+        self.h3.setWeight(network.h3.getWeight().copy())
+        self.outputLayer.setWeight(network.outputLayer.getWeight().copy())
 
-if __name__ == "__main__":
+        self.h1.setBias(network.h1.getBias().copy())
+        self.h2.setBias(network.h2.getBias().copy())
+        self.h3.setBias(network.h3.getBias().copy())
+        self.outputLayer.setBias(network.outputLayer.getBias().copy())
 
-    net = netWork()
+    # def update(self, tau, fileName):
+    #     self.loadModel(fileName)
+    #     self.h1.weights = tau * self.h1.weights + (1 - tau) * self.h1.weights
+    #     self.h2.weights = tau * self.h2.weights + (1 - tau) * self.h2.weights
+    #     self.h3.weights = tau * self.h3.weights + (1 - tau) * self.h3.weights
+    #     self.outputLayer.weights = tau * self.outputLayer.weights + (1 - tau) * self.outputLayer.weights
 
-    action = input("1:trainning, 2:testing: ")
-
-    if action == "1":
-        rate = 0
-        for i in range(5):
-            net.train()
-            print(net.test())
-    
-        store = input("store model: ")
-        if store == "y":
-            net.storeModel()
-
-    elif action == "2":
-        net.loadModel()
-        net.forwardCycle(np.array([1,1,1,1,-1,-1,-1,1,-1]).reshape(-1,1))
-        print(net.outputLayer.getLayer())
+    #     self.h1.bias = tau * self.h1.bias + (1 - tau) * self.h1.bias
+    #     self.h2.bias = tau * self.h2.bias + (1 - tau) * self.h2.bias
+    #     self.h3.bias = tau * self.h3.bias + (1 - tau) * self.h3.bias
+    #     self.outputLayer.bias = tau * self.outputLayer.bias + (1 - tau) * self.outputLayer.bias
 
