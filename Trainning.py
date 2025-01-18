@@ -2,20 +2,19 @@ import network
 import Game
 import numpy as np    
 import random
-from tqdm import tqdm
 from collections import deque
 
 # Hyperparameters
-batchSize = 400
+batchSize = 128
 gamma = 0.99
 epsMax = 1
 eps = epsMax
 epsMin = 0.1
-epsDecay = 0.0001
+epsDecay = 0.00001
 targetUpdate = 10
-memorySize = 600
+memorySize = 100000
 totalEpisodes = 10000
-learningRate = 0.3
+learningRate = 0.1
 learningRateDecay = 0.001 
 percentOWinning = 0
 percentDraw = 0
@@ -149,16 +148,16 @@ for episode in range(totalEpisodes):
             #if action O is the terminating action
             nextStateO = np.zeros((9,1))
             experience = (currentStateO, actionO, rewardO, nextStateO, True)
-            memoryO.append(experience)  
-
-        #train both models
-        train(qNetPlayerX, targetNetX, memoryX, learningRate)
-        train(qNetPlayerO, targetNetO, memoryO, learningRate)        
+            memoryO.append(experience)         
 
     #if actionX is the terminating action
     nextStateX = np.zeros((9,1))
     experience = (currentStateX, actionX, rewardX, nextStateX, True)
     memoryX.append(experience)
+
+    #train both models
+    train(qNetPlayerX, targetNetX, memoryX, learningRate)
+    train(qNetPlayerO, targetNetO, memoryO, learningRate) 
     
     #update hyper parameters
     if episode % targetUpdate == 0:
@@ -174,6 +173,4 @@ for episode in range(totalEpisodes):
 
 qNetPlayerO.storeModel("ModelO.json")
 qNetPlayerX.storeModel("ModelX.json")
-print("Player O winning percentage: ", percentOWinning/totalEpisodes)
-print("Draw percentage: ", percentDraw/totalEpisodes)
 print("Training Complete")

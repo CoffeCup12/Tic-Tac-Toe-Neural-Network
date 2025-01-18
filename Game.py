@@ -47,13 +47,14 @@ class game():
             reward = 0.6  # Reward for a draw
         else:
             # Intermediate Rewards
-            reward += sum(0.01 for win in self.winState if win & set(receiver) and not win & set(Opponent))  # Reward for potential winning moves
-            reward -= sum(0.01 for win in self.winState if win & set(Opponent) and not win & set(receiver))  
+            # reward += sum(0.01 for win in self.winState if win & set(receiver) and not win & set(Opponent))  # Reward for potential winning moves
+            # reward -= sum(0.01 for win in self.winState if win & set(Opponent) and not win & set(receiver))  
 
             # Check for blocking opponent's potential winning move
             action = int(action)
             OpponentHand = set(Opponent)
             receiverHand = set(receiver)
+            
             for win in self.winState:
                 if len(win & OpponentHand) == 2 and action in win:  # If the opponent has 2 in a row and the action blocks the win
                     reward = 0.6  # Reward for blocking the opponent's winning move
