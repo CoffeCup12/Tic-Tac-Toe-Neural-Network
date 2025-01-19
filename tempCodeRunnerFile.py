@@ -1,0 +1,1 @@
+ps = epsMin + (eps - epsMin) * np.exp(-epsDecay * episode)

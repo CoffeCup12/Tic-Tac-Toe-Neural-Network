@@ -9,15 +9,15 @@ batchSize = 128
 gamma = 0.99
 epsMax = 1
 eps = epsMax
-epsMin = 0.1
-epsDecay = 0.00001
-targetUpdate = 10
+epsMin = 0.3
+# epsDecay = 0.001
+epsDecay = 0.0005
+targetUpdate = 1000
 memorySize = 100000
 totalEpisodes = 10000
-learningRate = 0.1
-learningRateDecay = 0.001 
-percentOWinning = 0
-percentDraw = 0
+learningRate = 0.00025
+#learningRateDecay = 0.001
+step = 0
 
 # Initialize networks and memory
 qNetPlayerO = network.netWork("playerO")
@@ -91,7 +91,7 @@ def displayBoard(board):
 for episode in range(totalEpisodes):
     
     #for debug purposes
-    if(episode % 1 == 0):
+    if(episode % 100 == 0):
         displayBoard(myGame.getBoard())
         print("Episode: ", episode)
         print()
@@ -148,7 +148,8 @@ for episode in range(totalEpisodes):
             #if action O is the terminating action
             nextStateO = np.zeros((9,1))
             experience = (currentStateO, actionO, rewardO, nextStateO, True)
-            memoryO.append(experience)         
+            memoryO.append(experience)
+        step += 1         
 
     #if actionX is the terminating action
     nextStateX = np.zeros((9,1))
@@ -160,16 +161,18 @@ for episode in range(totalEpisodes):
     train(qNetPlayerO, targetNetO, memoryO, learningRate) 
     
     #update hyper parameters
-    if episode % targetUpdate == 0:
+    if step % targetUpdate == 0:
         #update target network
         targetNetO.transferFrom(qNetPlayerO)
         targetNetX.transferFrom(qNetPlayerX)
+        step = 0
 
     # epsilon decay
     if eps > epsMin:
-        eps *= np.exp(-epsDecay * episode)
+        eps = epsMin + (eps - epsMin) * np.exp(-epsDecay * episode)
+        #eps = eps - epsDecay
     #learning rate decay
-    learningRate *= 1/(1 + learningRateDecay * episode)
+    #learningRate *= 1/(1 + learningRateDecay * episode)
 
 qNetPlayerO.storeModel("ModelO.json")
 qNetPlayerX.storeModel("ModelX.json")

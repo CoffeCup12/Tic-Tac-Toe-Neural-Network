@@ -32,38 +32,51 @@ class game():
 
         if player == "playerO":
             receiver = self.playerO
-            Opponent = self.playerX
+            opponent = self.playerX
         else:
             receiver = self.playerX
-            Opponent = self.playerO
+            opponent = self.playerO
 
         reward = 0
-        
+
         if self.checkWin(receiver):
             reward = 1  # Maximum reward for winning
-        elif self.checkWin(Opponent):
+        elif self.checkWin(opponent):
             reward = -1  # Minimum reward for losing
         elif self.count >= 9:
-            reward = 0.6  # Reward for a draw
+            reward = 0.8  # Reward for a draw
         else:
-            # Intermediate Rewards
-            # reward += sum(0.01 for win in self.winState if win & set(receiver) and not win & set(Opponent))  # Reward for potential winning moves
-            # reward -= sum(0.01 for win in self.winState if win & set(Opponent) and not win & set(receiver))  
-
+            # # Intermediate Rewards
+            # reward += sum(0.01 for win in self.winState if win & set(receiver) and not win & set(opponent))  # Reward for potential winning moves
+            # reward -= sum(0.01 for win in self.winState if win & set(opponent) and not win & set(receiver))  # Penalty for opponent's potential winning moves
+            reward = 0.05
+           
+           # Encourage center and corner moves (optional)
+            if action in [4]:  # Center position
+                reward += 0.1
+           
             # Check for blocking opponent's potential winning move
             action = int(action)
-            OpponentHand = set(Opponent)
+            opponentHand = set(opponent)
             receiverHand = set(receiver)
-            
+
             for win in self.winState:
-                if len(win & OpponentHand) == 2 and action in win:  # If the opponent has 2 in a row and the action blocks the win
-                    reward = 0.6  # Reward for blocking the opponent's winning move
-                    #print("block")
-                    break
-                elif len(win & OpponentHand) == 2 and len(win & receiverHand) == 0:
-                    reward = -0.6
-                    #print("failed to block")
+
+                # if len(win & receiverHand) == 2 and len(win & opponentHand) == 0 and action not in win:
+                #     reward = -0.6 #penalty for not going for the win 
+                #     break
+                # elif len(win & opponentHand) == 2 and action in win:  # If the opponent has 2 in a row and the action blocks the win
+                #     reward = 0.6  # Reward for blocking the opponent's winning move
+                #     break
+                # elif len(win & opponentHand) == 2 and len(win & receiverHand) == 0 and action not in win:
+                #     reward = -0.6  # Penalty for failing to block
+                if len(win & opponentHand) == 2  and action in win:
+                    reward = 0.8
+                
+        reward = np.clip(reward, -1, 1)
+
         return reward
+
 
 
     
