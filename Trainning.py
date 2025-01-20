@@ -12,12 +12,11 @@ eps = epsMax
 epsMin = 0.1
 # epsDecay = 0.001
 epsDecay = 0.0005
-targetUpdate = 1000
+targetUpdate = 100
 memorySize = 10000
-totalEpisodes = 100000 
+totalEpisodes = 10000 
 learningRate = 0.0005
 #learningRateDecay = 0.001
-step = 0
 
 # Initialize networks and memory
 qNetPlayerO = network.netWork("playerO")
@@ -70,7 +69,7 @@ def train(qNet, targetNet, memory, learningRate):
             getRidOfInvalidActions(targetQs, myGame.getActionSpace(state))
 
             #backpropagate network 
-            gradients = learningRate * (targetQs - actualQs)
+            gradients = ((actualQs - targetQs) ** 2).sum()/batchSize
             qNet.backpropagation(gradients, learningRate)  
 
 def getAction(qNet,actionSpace, currentState):
@@ -82,7 +81,13 @@ def getAction(qNet,actionSpace, currentState):
             action = myGame.getPredictAction(actionSpace, qValues)  # Exploit
             #action = np.argmax(qValues)
     else:
-        action = -1
+        #return the last action if the game has already ended 
+        if qNet.getName() == "playerX":
+            actionList = myGame.getXActionList()
+            action = actionList[-1]
+        else:
+            actionList = myGame.getOActionList()
+            action = actionList[-1]
     return action
 
 #debug function to show the board
@@ -102,47 +107,86 @@ for episode in range(totalEpisodes):
     #reset game
     myGame.reset()
 
+    #let player X do the first Move
+    currentStateX = myGame.getBoard().copy()
+    actionSpace = myGame.getActionSpace(currentStateX)
+    actionX = getAction(qNetPlayerX, actionSpace, currentStateX)
+    myGame.playerXMove(actionX)
+
+    #get reward for this action
+    rewardX = myGame.getReward(actionX, "playerX")
+
     while not myGame.isDone():
-        #move player x
-        currentState = myGame.getBoard().copy()
-        actionSpace = myGame.getActionSpace(currentState)
-        actionX = getAction(qNetPlayerX, actionSpace, currentState)
-        myGame.playerXMove(actionX)
 
-        #nextState and calculate reward
-        nextState = myGame.getBoard().copy()
-        reward = myGame.getReward(actionX, "playerX")
+        done = myGame.isDone()
 
-        #store experience
-        experience = currentState, actionX, reward, nextState, myGame.isDone() 
-        memoryX.append(experience)
-
-        #print(experience)
-        
-        #move player o
-        currentState = myGame.getBoard().copy()
-        actionSpace = myGame.getActionSpace(currentState)
-        actionO = getAction(qNetPlayerX, actionSpace, currentState)
+        #move player O
+        currentStateO = myGame.getBoard().copy()
+        actionSpace = myGame.getActionSpace(currentStateO)
+        actionO = getAction(qNetPlayerO, actionSpace, currentStateO)
         myGame.playerOMove(actionO)
 
-        #next state and calculate reward
-        nextState = myGame.getBoard().copy() 
-        reward = myGame.getReward(actionO, "playerO")    
+        #get reward for this action
+        rewardO = myGame.getReward(actionO, "playerO")
 
-        #store experince in memory
-        experience = currentState, actionO, reward, nextState, myGame.isDone()
+        #set nextState for X 
+        nextStateX = myGame.getBoard().copy()
+
+        #store experience for player X 
+        experience = currentStateX, actionX, rewardX, nextStateX, done
+        memoryX.append(experience)
+
+
+        done = myGame.isDone()
+        #move player X
+        currentStateX = myGame.getBoard().copy()
+        actionSpace = myGame.getActionSpace(currentStateX)
+        actionX = getAction(qNetPlayerX, actionSpace, currentStateX)
+        myGame.playerXMove(actionX)
+
+        #get reward for this action
+        rewardX = myGame.getReward(actionX, "playerX")
+
+        #set nextState for O
+        nextStateO = myGame.getBoard().copy()
+
+        #store experience for player O
+        experience = currentStateO, actionO, rewardO, nextStateO, done
         memoryO.append(experience)
 
-        #print(experience)
+        #train both models
+        train(qNetPlayerX, targetNetX, memoryX, learningRate)
+        train(qNetPlayerO, targetNetO, memoryO, learningRate) 
 
-        step += 2     
+    #if player x wins the game store the losing state and lastest action of O in O memory
+    #additionally stoer the missing win state in x memory 
+    if not myGame.checkWin(myGame.getOActionList()):
 
-    #train both models
-    train(qNetPlayerX, targetNetX, memoryX, learningRate)
-    train(qNetPlayerO, targetNetO, memoryO, learningRate) 
+        experience = currentStateX, actionX, rewardX, None, True
+        memoryX.append(experience)
+
+        currentStateO = myGame.getBoard().copy()
+        actionO = myGame.getOActionList()[-1] 
+
+        experience = currentStateO, actionO, myGame.getReward(actionO, "playerO"), None, True
+        memoryO.append(experience)
+
+    else:
+        #if player O wins, store the losing experience in x
+        currentStateX = myGame.getBoard().copy()
+        actionX = myGame.getXActionList()[-1] 
+
+        experience = currentStateX, actionX, -1, None, True
+        memoryX.append(experience)
+
+
+
+    # #train both models
+    # train(qNetPlayerX, targetNetX, memoryX, learningRate)
+    # train(qNetPlayerO, targetNetO, memoryO, learningRate) 
     
-    #update hyper parameters
-    if step % targetUpdate == 0:
+    #update targetNet every 1000 step 
+    if episode % targetUpdate == 0:
         #update target network
         targetNetO.transferFrom(qNetPlayerO)
         targetNetX.transferFrom(qNetPlayerX)
@@ -150,8 +194,8 @@ for episode in range(totalEpisodes):
 
     # epsilon decay
     if eps > epsMin:
-        #eps = epsMin + (eps - epsMin) * np.exp(-epsDecay * episode)
-        eps -= epsDecay
+        eps = epsMin + (eps - epsMin) * np.exp(-epsDecay * episode)
+        #eps -= epsDecay
     #learning rate decay
     #learningRate *= 1/(1 + learningRateDecay * episode)
 

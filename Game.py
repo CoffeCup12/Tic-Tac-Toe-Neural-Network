@@ -12,16 +12,22 @@ class game():
         self.winState = [{0,1,2}, {3,4,5}, {6,7,8}, {0,4,8}, {2,4,6}, {0,3,6}, {1,4,7}, {2,5,8}]
 
     def playerOMove(self, input):
-        if input >= 0:
+        if len(self.playerO) == 0 or input != self.playerO[-1]:
             self.playerO.append(input)
             self.board[input] = -1
             self.count += 1
 
     def playerXMove(self, input):
-        if input >= 0:
+        if len(self.playerX) == 0 or input != self.playerX[-1]:
             self.playerX.append(input)
             self.board[input] = 1
             self.count += 1
+
+    def getXActionList(self):
+        return self.playerX
+
+    def getOActionList(self):
+        return self.playerO
     
     def checkWin(self, side):
         handSet = set(side)
@@ -48,14 +54,13 @@ class game():
         elif self.count >= 9:
             reward = 0.8  # Reward for a draw
         else:
+
             # Intermediate Rewards
             # reward += sum(0.05 for win in self.winState if win & set(receiver) and not win & set(opponent))  # Reward for potential winning moves
             # reward -= sum(0.05 for win in self.winState if win & set(opponent) and not win & set(receiver))  # Penalty for opponent's potential winning moves
-            reward = 0
            # Encourage center and corner moves (optional)
             if action in [4]:  # Center position
-                reward += 0.1
-           
+                reward += 0.2
             # Check for blocking opponent's potential winning move
             action = int(action)
             opponentHand = set(opponent)
@@ -64,12 +69,12 @@ class game():
             for win in self.winState:
                 
                 if len(win & opponentHand) == 2  and action in win:
-                    reward = 0.8
-                    break
+                    reward += 0.5
+                    
                 elif len(win & opponentHand) == 2 and len(win & receiverHand) == 0:
-                    reward = -0.8
+                    reward -= 0.5
                 
-        reward = np.clip(reward, -1, 1)
+        #reward = np.clip(reward, -1, 1)
 
         return reward
     
