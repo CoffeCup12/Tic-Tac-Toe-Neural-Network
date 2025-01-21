@@ -45,7 +45,7 @@ class game():
             receiver = self.playerX
             opponent = self.playerO
 
-        reward = 0
+        reward = -0.1
 
         if self.checkWin(receiver):
             reward = 1  # Maximum reward for winning
@@ -69,7 +69,8 @@ class game():
             for win in self.winState:
                 
                 if len(win & opponentHand) == 2  and action in win:
-                    reward += 0.5
+                    reward += 0.8
+                    break
                     
                 elif len(win & opponentHand) == 2 and len(win & receiverHand) == 0:
                     reward -= 0.5

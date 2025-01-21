@@ -90,7 +90,6 @@ class outputLayer(hiddenLayer):
     def forwardPass(self, inputLayer):
         #self.layer = wx + b
         self.layer = self.weights.dot(inputLayer.getLayer()) + self.bias
-        self.layer = np.tanh(self.layer)
     
     def backwardPass(self, lastLayer, learningRate, loss):
 
@@ -110,7 +109,7 @@ class outputLayer(hiddenLayer):
     
     def getDelta(self, loss):
 
-        #delta = (finalOutput - actualResult) * derivative of tanh
-        return loss * (1 - self.layer ** 2)
+        #delta = (finalOutput - actualResult)
+        return loss 
 
         

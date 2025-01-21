@@ -16,7 +16,7 @@ targetUpdate = 100
 memorySize = 10000
 totalEpisodes = 10000 
 learningRate = 0.0005
-#learningRateDecay = 0.001
+learningRateDecay = 0.001
 
 # Initialize networks and memory
 qNetPlayerO = network.netWork("playerO")
@@ -38,39 +38,61 @@ myGame = Game.game()
 def getRidOfInvalidActions(qValues, actionSpace):
     mask = np.zeros_like(qValues, dtype=bool)
     mask[actionSpace] = True
-    qValues[~mask] = -1
+    qValues[~mask] = 0
 
 
 def train(qNet, targetNet, memory, learningRate):
-
-    # Train the network
     if len(memory) > batchSize:
 
-        #take sample batch based on reward
+        # Take sample batch based on reward
         prioritizedMemory = sorted(memory, key=lambda x: x[2], reverse=True) # Sort by reward
         sampleBatch = random.sample(prioritizedMemory, batchSize)
         
-        #for each experience in the batch
         for state, action, reward, nextState, done in sampleBatch:
 
-            #calcuate actual Q values
             actualQs = qNet.forwardCycle(state)
-            targetQs = actualQs.copy()
-
-            #get target Q values
-            if done:
-                targetQs[action] = reward
-            else:
-                nextQ = targetNet.forwardCycle(nextState)
-                #getRidOfInvalidActions(nextQ, myGame.getActionSpace(nextState))
-                targetQs[action] = reward + gamma * np.max(nextQ)
+            actionSpace = myGame.getActionSpace(state)
             
-            #make all q values zero except for the valid actions
-            getRidOfInvalidActions(targetQs, myGame.getActionSpace(state))
+            # Get rid of invalid actions in the current state's Q-values
+            getRidOfInvalidActions(actualQs, actionSpace)
+            vs = np.max(actualQs)
 
-            #backpropagate network 
-            gradients = ((actualQs - targetQs) ** 2).sum()/batchSize
-            qNet.backpropagation(gradients, learningRate)  
+            if done:
+                vsPrime = 0
+            else:
+                nextQs = targetNet.forwardCycle(nextState)
+                nextActionSpace = myGame.getActionSpace(nextState)
+                
+                # Get rid of invalid actions in the next state's Q-values
+                getRidOfInvalidActions(nextQs, nextActionSpace)
+                vsPrime = np.max(nextQs)
+
+            target = reward + gamma * vsPrime
+
+            # Compute the loss for the specific action
+            lossVector = np.zeros_like(actualQs)
+            lossVector[action] = target - actualQs[action]
+
+            qNet.backpropagation(lossVector, learningRate)
+
+            # #calcuate actual Q values
+            # actualQs = qNet.forwardCycle(state)
+            # targetQs = actualQs.copy()
+
+            # #get target Q values
+            # if done:
+            #     targetQs[action] = reward
+            # else:
+            #     nextQ = targetNet.forwardCycle(nextState)
+            #     #getRidOfInvalidActions(nextQ, myGame.getActionSpace(nextState))
+            #     targetQs[action] = reward + gamma * np.max(nextQ)
+            
+            # #make all q values zero except for the valid actions
+            # getRidOfInvalidActions(targetQs, myGame.getActionSpace(state))
+
+            # #backpropagate network 
+            # gradients = actualQs - targetQs
+            # qNet.backpropagation(gradients, learningRate)  
 
 def getAction(qNet,actionSpace, currentState):
     if actionSpace != []:
@@ -154,9 +176,9 @@ for episode in range(totalEpisodes):
         experience = currentStateO, actionO, rewardO, nextStateO, done
         memoryO.append(experience)
 
-        #train both models
-        train(qNetPlayerX, targetNetX, memoryX, learningRate)
-        train(qNetPlayerO, targetNetO, memoryO, learningRate) 
+        # #train both models
+        # train(qNetPlayerX, targetNetX, memoryX, learningRate)
+        # train(qNetPlayerO, targetNetO, memoryO, learningRate) 
 
     #if player x wins the game store the losing state and lastest action of O in O memory
     #additionally stoer the missing win state in x memory 
@@ -181,9 +203,9 @@ for episode in range(totalEpisodes):
 
 
 
-    # #train both models
-    # train(qNetPlayerX, targetNetX, memoryX, learningRate)
-    # train(qNetPlayerO, targetNetO, memoryO, learningRate) 
+    #train both models
+    train(qNetPlayerX, targetNetX, memoryX, learningRate)
+    train(qNetPlayerO, targetNetO, memoryO, learningRate) 
     
     #update targetNet every 1000 step 
     if episode % targetUpdate == 0:
@@ -197,7 +219,7 @@ for episode in range(totalEpisodes):
         eps = epsMin + (eps - epsMin) * np.exp(-epsDecay * episode)
         #eps -= epsDecay
     #learning rate decay
-    #learningRate *= 1/(1 + learningRateDecay * episode)
+    learningRate *= 1/(1 + learningRateDecay * episode)
 
 qNetPlayerO.storeModel("ModelO.json")
 qNetPlayerX.storeModel("ModelX.json")
