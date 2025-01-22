@@ -27,54 +27,55 @@ class hiddenLayer(layer):
         super().__init__(numNodes)
 
         #generate random weights and bias
-        #self.weights = np.random.randn(numNodes, numNodesLast)
-        # He initialization for weights 
-        self.weights = np.random.randn(numNodes, numNodesLast) * np.sqrt(2 / numNodesLast)
+        self.weights = np.random.randn(numNodes, numNodesLast) 
         self.bias = np.random.randn(numNodes, 1)
+        self.originalOutput = np.zeros((numNodes, 1))
     
     def forwardPass(self, inputLayer):  
         #self.layer = wx + b
         self.layer = self.weights.dot(inputLayer.getLayer()) + self.bias
+        self.originalOutput = self.layer.copy()
         #leaky RELU activation function
         self.layer[self.layer < 0] *= 0.01
 
+    # Other methods remain unchanged...
+
     def backwardPass(self, lastLayer, nextLayer, nextDelta, learningRate):
+        # Get delta
+        delta = self.getDelta(nextLayer, nextDelta)
+        
+        # Calculate gradients
+        gradW = np.dot(delta, np.transpose(lastLayer.getLayer()))
+        gradB = delta
 
-        #get delta
-        delta = self.getDelta(nextLayer, nextDelta, lastLayer)
-        #dW = delta dot x^T
-        sigmaWeight = np.dot(delta, np.transpose(lastLayer.getLayer()))
-        #dB = delta
-        sigmaBias = delta
-
-        #clip gradient
+        # Clip gradients to avoid exploding gradients
         max_grad = 1.0 
-        sigmaWeight = np.clip(sigmaWeight, -max_grad, max_grad) 
-        sigmaBias = np.clip(sigmaBias, -max_grad, max_grad)
+        gradW = np.clip(gradW, -max_grad, max_grad) 
+        gradB = np.clip(gradB, -max_grad, max_grad)
 
-        #update weights and bias
-        self.weights = self.weights - (learningRate * sigmaWeight)
-        self.bias = self.bias - (learningRate * sigmaBias)
+        # Update weights and bias using gradient descent
+        self.weights -= learningRate * gradW
+        self.bias -= learningRate * gradB
 
-        #return the delta calculated in this backward pass
+        # Return the delta for the backward pass
         return delta
     
-    def getDelta(self, nextlayer, nextDelta, lastLayer):
-        #delta = (nextLayer's weight)^T dot (nextLayer's delta) * derivative of RELU 
-        return np.dot(np.transpose(nextlayer.getWeight()), nextDelta) * self.derRelu(self.layer)
+    def getDelta(self, nextWeight, nextDelta):
+        # Calculate delta for the current layer
+        return np.dot(np.transpose(nextWeight), nextDelta) * self.derRelu(self.originalOutput)
     
     def derRelu(self, x):
+        # Derivative of Leaky ReLU activation function
         return np.where(x > 0, 1, 0.01)
     
-    
     def getWeight(self):
-        return self.weights
+        return self.weights.copy()
     
     def setWeight(self, weight):
         self.weights = weight
     
     def getBias(self):
-        return self.bias
+        return self.bias.copy()
     
     def setBias(self, bias):
         self.bias = bias
@@ -84,32 +85,33 @@ class outputLayer(hiddenLayer):
     def __init__(self, numNodes, numNodesLast):
         super().__init__(numNodes, numNodesLast)
     
-    def softmax(self, inputLayer):
-        return (np.e ** inputLayer) / np.sum(inputLayer)
+    # def softmax(self, inputLayer):
+    #     return (np.e ** inputLayer) / np.sum(inputLayer)
     
     def forwardPass(self, inputLayer):
         #self.layer = wx + b
         self.layer = self.weights.dot(inputLayer.getLayer()) + self.bias
-    
-    def backwardPass(self, lastLayer, learningRate, loss):
 
+    def backwardPass(self, lastLayer, learningRate, loss):
+        # Get delta from the loss (TD error)
         delta = self.getDelta(loss)
 
-        sigmaWeight = np.dot(delta, np.transpose(lastLayer.getLayer()))
-        sigmaBias = delta
+        # Calculate gradients
+        gradW = np.dot(delta, np.transpose(lastLayer.getLayer()))
+        gradB = delta
 
-        #clip gradient
+        # Clip gradients to avoid exploding gradients
         max_grad = 1.0 
-        sigmaWeight = np.clip(sigmaWeight, -max_grad, max_grad) 
-        sigmaBias = np.clip(sigmaBias, -max_grad, max_grad)
+        gradW = np.clip(gradW, -max_grad, max_grad) 
+        gradB = np.clip(gradB, -max_grad, max_grad)
         
-        #update weights and bias 
-        self.weights = self.weights - (learningRate * sigmaWeight)
-        self.bias = self.bias - (learningRate * sigmaBias)
+        # Update weights and bias using gradient descent
+        self.weights -= learningRate * gradW
+        self.bias -= learningRate * gradB
     
     def getDelta(self, loss):
+        # Delta for the output layer in DQN is the TD error
+        return loss
 
-        #delta = (finalOutput - actualResult)
-        return loss 
 
         

@@ -12,16 +12,14 @@ class game():
         self.winState = [{0,1,2}, {3,4,5}, {6,7,8}, {0,4,8}, {2,4,6}, {0,3,6}, {1,4,7}, {2,5,8}]
 
     def playerOMove(self, input):
-        if len(self.playerO) == 0 or input != self.playerO[-1]:
-            self.playerO.append(input)
-            self.board[input] = -1
-            self.count += 1
+        self.playerO.append(input)
+        self.board[input] = -1
+        self.count += 1
 
     def playerXMove(self, input):
-        if len(self.playerX) == 0 or input != self.playerX[-1]:
-            self.playerX.append(input)
-            self.board[input] = 1
-            self.count += 1
+        self.playerX.append(input)
+        self.board[input] = 1
+        self.count += 1
 
     def getXActionList(self):
         return self.playerX
@@ -45,45 +43,38 @@ class game():
             receiver = self.playerX
             opponent = self.playerO
 
-        reward = -0.1
-
+        done = True
+        reward = -0.5
         if self.checkWin(receiver):
-            reward = 1  # Maximum reward for winning
+            reward = 2  # Maximum reward for winning
         elif self.checkWin(opponent):
-            reward = -1  # Minimum reward for losing
+            reward = -2  # Minimum reward for losing
         elif self.count >= 9:
-            reward = 0.8  # Reward for a draw
+            reward = 1  # Reward for a draw
         else:
-
-            # Intermediate Rewards
-            # reward += sum(0.05 for win in self.winState if win & set(receiver) and not win & set(opponent))  # Reward for potential winning moves
-            # reward -= sum(0.05 for win in self.winState if win & set(opponent) and not win & set(receiver))  # Penalty for opponent's potential winning moves
-           # Encourage center and corner moves (optional)
+            done = False
+            # Encourage center and corner moves (optional)
             if action in [4]:  # Center position
-                reward += 0.2
+                reward += 0.8
             # Check for blocking opponent's potential winning move
             action = int(action)
             opponentHand = set(opponent)
             receiverHand = set(receiver)
 
             for win in self.winState:
-                
-                if len(win & opponentHand) == 2  and action in win:
-                    reward += 0.8
-                    break
                     
+                if len(win & opponentHand) == 2  and action in win:
+                    reward += 1
+                    #break    
                 elif len(win & opponentHand) == 2 and len(win & receiverHand) == 0:
-                    reward -= 0.5
+                    reward -= 1
                 
         #reward = np.clip(reward, -1, 1)
 
-        return reward
+        return reward, done
     
     def getActionSpace(self, state):
-        if not self.isDone():
-            spaceList = np.where(state == 0)[0].tolist()
-        else:
-            spaceList = []
+        spaceList = np.where(state == 0)[0].tolist()
         return spaceList
     
     def getPredictAction(self, space, prediction):
@@ -96,7 +87,7 @@ class game():
 
     
     def getBoard(self):
-        return self.board
+        return self.board.copy()
 
     def reset(self):
         self.board = np.zeros((9,1))

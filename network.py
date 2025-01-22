@@ -7,10 +7,10 @@ class netWork:
     
     def __init__(self, name):
         self.inputLayer = Layer.inputLayer(9)
-        self.h1 = Layer.hiddenLayer(45,9)
-        self.h2 = Layer.hiddenLayer(45,45)
-        self.h3 = Layer.hiddenLayer(27,45)
-        self.outputLayer = Layer.outputLayer(9,27)
+        self.h1 = Layer.hiddenLayer(100,9)
+        self.h2 = Layer.hiddenLayer(200,100)
+        self.h3 = Layer.hiddenLayer(100,200)
+        self.outputLayer = Layer.outputLayer(9,100)
         self.name = name
     def getName(self):
         return self.name
@@ -24,10 +24,14 @@ class netWork:
         return self.outputLayer.getLayer()
     
     def backpropagation(self, loss, learningRate):
+        weightOut = self.outputLayer.getWeight()
+        weighth3 = self.h3.getWeight()
+        weighth2 = self.h2.getWeight()
+
         self.outputLayer.backwardPass(self.h3, learningRate, loss)
-        nextDelta = self.h3.backwardPass(self.h2, self.outputLayer, self.outputLayer.getDelta(loss),learningRate)
-        nextDelta = self.h2.backwardPass(self.h1, self.h3, nextDelta, learningRate)
-        self.h1.backwardPass(self.inputLayer, self.h2, nextDelta, learningRate)
+        nextDelta = self.h3.backwardPass(self.h2, weightOut, self.outputLayer.getDelta(loss),learningRate)
+        nextDelta = self.h2.backwardPass(self.h1, weighth3, nextDelta, learningRate)
+        self.h1.backwardPass(self.inputLayer, weighth2, nextDelta, learningRate)
     
     def storeModel(self, fileName):
 
@@ -61,15 +65,15 @@ class netWork:
         self.outputLayer.setBias(np.array(model.get('outputBias')))
     
     def transferFrom(self, source):
-        self.h1.setWeight(source.h1.getWeight().copy())
-        self.h2.setWeight(source.h2.getWeight().copy())
-        self.h3.setWeight(source.h3.getWeight().copy())
-        self.outputLayer.setWeight(source.outputLayer.getWeight().copy())
+        self.h1.setWeight(source.h1.getWeight())
+        self.h2.setWeight(source.h2.getWeight())
+        self.h3.setWeight(source.h3.getWeight())
+        self.outputLayer.setWeight(source.outputLayer.getWeight())
 
-        self.h1.setBias(source.h1.getBias().copy())
-        self.h2.setBias(source.h2.getBias().copy())
-        self.h3.setBias(source.h3.getBias().copy())
-        self.outputLayer.setBias(source.outputLayer.getBias().copy())
+        self.h1.setBias(source.h1.getBias())
+        self.h2.setBias(source.h2.getBias())
+        self.h3.setBias(source.h3.getBias())
+        self.outputLayer.setBias(source.outputLayer.getBias())
 
         
 
