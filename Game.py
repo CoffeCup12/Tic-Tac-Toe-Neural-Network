@@ -13,7 +13,7 @@ class game():
 
     def playerOMove(self, input):
         self.playerO.append(input)
-        self.board[input] = -1
+        self.board[input] = 0.5
         self.count += 1
 
     def playerXMove(self, input):
@@ -35,7 +35,6 @@ class game():
         return self.checkWin(self.playerO) or self.checkWin(self.playerX) or self.count >= 9
 
     def getReward(self, action, player):
-
         if player == "playerO":
             receiver = self.playerO
             opponent = self.playerX
@@ -44,34 +43,43 @@ class game():
             opponent = self.playerO
 
         done = True
-        reward = -0.5
+        reward = -1 
+
+        # Winning
         if self.checkWin(receiver):
-            reward = 2  # Maximum reward for winning
+            reward = 5  
+            if len(receiver) <= 4:
+                reward += 3
         elif self.checkWin(opponent):
-            reward = -2  # Minimum reward for losing
+            reward = -5  
+            if len(receiver) < 3:
+                reward -= 3  
+
+        # Drawing
         elif self.count >= 9:
-            reward = 1  # Reward for a draw
+            reward = 5  # Reward for a draw
         else:
             done = False
-            # Encourage center and corner moves (optional)
-            if action in [4]:  # Center position
-                reward += 0.8
+            # Encourage center and corner moves
+            if action == 4: 
+                reward = 2
+            elif action in [0, 2, 6, 8]:  
+                reward = 1
+
             # Check for blocking opponent's potential winning move
             action = int(action)
             opponentHand = set(opponent)
             receiverHand = set(receiver)
 
             for win in self.winState:
-                    
-                if len(win & opponentHand) == 2  and action in win:
-                    reward += 1
-                    #break    
+                if len(win & opponentHand) == 2 and action in win:
+                    reward = 7  # High reward for blocking a winning move
+                    break
                 elif len(win & opponentHand) == 2 and len(win & receiverHand) == 0:
-                    reward -= 1
-                
-        #reward = np.clip(reward, -1, 1)
+                    reward -= 7  # Penalty for missing a block
 
         return reward, done
+
     
     def getActionSpace(self, state):
         spaceList = np.where(state == 0)[0].tolist()

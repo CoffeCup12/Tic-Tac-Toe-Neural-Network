@@ -110,7 +110,7 @@ class outputLayer(hiddenLayer):
         self.bias -= learningRate * gradB
     
     def getDelta(self, loss):
-        # Delta for the output layer in DQN is the TD error
+        # delta = loss * derivative of tanh
         return loss
 
 

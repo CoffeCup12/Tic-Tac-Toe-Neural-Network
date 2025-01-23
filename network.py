@@ -1,21 +1,26 @@
 import numpy as np
 import json
 import Layer 
-import FileReader
 
 class netWork:
     
     def __init__(self, name):
-        self.inputLayer = Layer.inputLayer(9)
-        self.h1 = Layer.hiddenLayer(100,9)
-        self.h2 = Layer.hiddenLayer(200,100)
-        self.h3 = Layer.hiddenLayer(100,200)
-        self.outputLayer = Layer.outputLayer(9,100)
+        self.inputLayer = Layer.inputLayer(18)
+        self.h1 = Layer.hiddenLayer(50,18)
+        self.h2 = Layer.hiddenLayer(100,50)
+        self.h3 = Layer.hiddenLayer(50,100)
+        self.outputLayer = Layer.outputLayer(9,50)
         self.name = name
     def getName(self):
         return self.name
     
-    def forwardCycle(self, input):
+    def processInput(self, state):
+        playerXRep = np.where(state == 1, 1, 0)
+        playerYRep = np.where(state == 0.5, 1, 0)
+        return np.vstack((playerXRep, playerYRep))
+    
+    def forwardCycle(self, inputRaw):
+        input = self.processInput(inputRaw)
         self.inputLayer.resetLayer(input)
         self.h1.forwardPass(self.inputLayer)
         self.h2.forwardPass(self.h1)

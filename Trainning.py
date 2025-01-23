@@ -5,18 +5,19 @@ import random
 from collections import deque
 
 # Hyperparameters
-batchSize = 128
+batchSize = 256
 gamma = 0.99
 epsMax = 1
 eps = epsMax
 epsMin = 0.1
 # epsDecay = 0.001
-epsDecay = 0.0005
-targetUpdate = 1000
-memorySize = 10000
+epsDecay = 0.000001
+targetUpdate = 100
+memorySize = 1000000
 totalEpisodes = 10000 
-learningRate = 0.0005
-learningRateDecay = 0.001
+learningRate = 1
+learningRateDecay = 0.000001
+step = 0
 
 # Initialize networks and memory
 qNetPlayerO = network.netWork("playerO")
@@ -30,10 +31,11 @@ memoryX = deque(maxlen=memorySize)
 
 myGame = Game.game()
 
+
 def getRidOfInvalidActions(qValues, actionSpace):
     mask = np.zeros_like(qValues, dtype=bool)
     mask[actionSpace] = True
-    qValues[~mask] = 0
+    qValues[~mask] = -1000
 
 
 def train(qNet, targetNet, memory, learningRate):
@@ -45,47 +47,32 @@ def train(qNet, targetNet, memory, learningRate):
         
         for state, action, reward, nextState, done in sampleBatch:
 
-            actualQs = qNet.forwardCycle(state)
-            actionSpace = myGame.getActionSpace(state)
+            predictedQs = qNet.forwardCycle(state)
+            targetQs = predictedQs.copy()
             
-            # Get rid of invalid actions in the current state's Q-values
-            getRidOfInvalidActions(actualQs, actionSpace)
-            vs = np.max(actualQs)
-
-            if done:
-                vsPrime = 0
-            else:
+            targetQs[action] = reward
+            if not done:
                 nextQs = targetNet.forwardCycle(nextState)
-                nextActionSpace = myGame.getActionSpace(nextState)
-                
-                # Get rid of invalid actions in the next state's Q-values
-                getRidOfInvalidActions(nextQs, nextActionSpace)
-                vsPrime = np.max(nextQs)
+                actionSpace = myGame.getActionSpace(nextState)
+                getRidOfInvalidActions(nextQs, actionSpace)
 
-            target = reward + gamma * vsPrime
+                targetQs[action] += gamma * np.max(nextQs)
 
-            # Compute the loss for the specific action
-            lossVector = np.zeros_like(actualQs)
-            lossVector[action] = target - actualQs[action]
+            getRidOfInvalidActions(targetQs, myGame.getActionSpace(state))
 
-            qNet.backpropagation(lossVector, learningRate)
+            loss = targetQs - predictedQs
+            # l2Loss = 1e-3 * np.sum(np.square(predictedQs))
+            # totalLoss = loss + l2Loss
+            
+            qNet.backpropagation(loss, learningRate)
 
 def getAction(qNet,actionSpace, currentState):
-    if actionSpace != []:
-        if np.random.rand() <= eps:
-            action = np.random.choice(actionSpace)  # Explore
-        else:
-            qValues = qNet.forwardCycle(currentState)
-            action = myGame.getPredictAction(actionSpace, qValues)  # Exploit
-            #action = np.argmax(qValues)
+    if np.random.rand() <= eps:
+        action = np.random.choice(actionSpace)  # Explore
     else:
-        #return the last action if the game has already ended 
-        if qNet.getName() == "playerX":
-            actionList = myGame.getXActionList()
-            action = actionList[-1]
-        else:
-            actionList = myGame.getOActionList()
-            action = actionList[-1]
+        qValues = qNet.forwardCycle(currentState)
+        action = myGame.getPredictAction(actionSpace, qValues)  # Exploit
+        #action = np.argmax(qValues)
     return action
 
 #debug function to show the board
@@ -100,6 +87,8 @@ for episode in range(totalEpisodes):
     if(episode % 100 == 0):
         displayBoard(myGame.getBoard())
         print("Episode: ", episode)
+        print("epsilon ", eps)
+        print("learning Rate", learningRate)
         print()
 
     #reset game
@@ -123,6 +112,10 @@ for episode in range(totalEpisodes):
         actionO = getAction(qNetPlayerO, actionSpace, currentStateO)
         myGame.playerOMove(actionO)
 
+        # if episode % 100 == 0:
+        #     displayBoard(myGame.getBoard())
+        #     print()
+
         #get reward for this action
         rewardO, doneO = myGame.getReward(actionO, "playerO")
 
@@ -141,9 +134,12 @@ for episode in range(totalEpisodes):
         actionSpace = myGame.getActionSpace(currentStateX)
         actionX = getAction(qNetPlayerX, actionSpace, currentStateX)
         myGame.playerXMove(actionX)
+        # if episode % 100 == 0:
+        #     displayBoard(myGame.getBoard())
+        #     print()
 
         #get reward for this action
-        rewardX, doneO = myGame.getReward(actionX, "playerX")
+        rewardX, doneX = myGame.getReward(actionX, "playerX")
 
         #set nextState for O
         nextStateO = myGame.getBoard()
@@ -156,41 +152,46 @@ for episode in range(totalEpisodes):
             break
 
         #train both models
-        # train(qNetPlayerX, targetNetX, memoryX, learningRate)
-        # train(qNetPlayerO, targetNetO, memoryO, learningRate) 
+        train(qNetPlayerX, targetNetX, memoryX, learningRate)
+        train(qNetPlayerO, targetNetO, memoryO, learningRate) 
+
+        step += 2
 
     #if player x wins or draw
     if doneX:
         #store win memeory for X 
-        currentState = myGame.getBoard()
-        action = myGame.getXActionList()[-1]
-        reward = myGame.getReward(action, "playerX")
-        memoryX.append((currentState,action,reward, None, True))
+        reward, done = myGame.getReward(actionX, "playerX")
+        memoryX.append((currentStateX, actionX, reward, None, True))
 
         #store lose memory for O
-        currentState = myGame.getBoard()
-        action = myGame.getOActionList()[-1]
-        reward = myGame.getReward(action, "playerX")
-        memoryO.append((currentState,action,reward, None, True))
+        reward, done = myGame.getReward(actionO, "playerO")
+
+        lastMemo = memoryO.pop()
+        modifedMemo = currentStateO, actionO, reward, None,True
         
-    elif doneO:
+        memoryO.append(modifedMemo)
+        
+    else:
         #store win memeory for O 
-        currentState = myGame.getBoard()
-        action = myGame.getOActionList()[-1]
-        memoryO.append((currentState,action,1, None, True))
+        reward, done = myGame.getReward(actionX, "playerO")
+        memoryO.append((currentStateO, actionO, reward, None, True))
 
         #store lose memory for X
-        currentState = myGame.getBoard()
-        action = myGame.getXActionList()[-1]
-        memoryX.append((currentState,action,-1, None, True))
+        reward, done = myGame.getReward(actionX, "playerX")
 
+        lastMemo = memoryX.pop()
+        modifedMemo = currentStateX, actionX, reward, None, True
 
-    # #train both models
-    train(qNetPlayerX, targetNetX, memoryX, learningRate)
-    train(qNetPlayerO, targetNetO, memoryO, learningRate) 
+        memoryX.append(modifedMemo)
+    # print(memoryX)
+    # print(memoryO)
+
+    # train both models
+    # train(qNetPlayerX, targetNetX, memoryX, learningRate)
+    # train(qNetPlayerO, targetNetO, memoryO, learningRate) 
     
     #update targetNet every 1000 step 
-    if episode % targetUpdate == 0:
+    if step > targetUpdate:
         #update target network
         targetNetO.transferFrom(qNetPlayerO)
         targetNetX.transferFrom(qNetPlayerX)
@@ -199,9 +200,9 @@ for episode in range(totalEpisodes):
     # epsilon decay
     if eps > epsMin:
         eps = epsMin + (eps - epsMin) * np.exp(-epsDecay * episode)
-        #eps -= epsDecay
     #learning rate decay
-    learningRate *= 1/(1 + learningRateDecay * episode)
+    if learningRate > 0.01:
+        learningRate *= 1 / (1 + learningRateDecay * episode)
 
 qNetPlayerO.storeModel("ModelO.json")
 qNetPlayerX.storeModel("ModelX.json")
