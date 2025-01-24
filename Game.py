@@ -20,21 +20,14 @@ class game():
         self.playerX.append(input)
         self.board[input] = 1
         self.count += 1
-
-    def getXActionList(self):
-        return self.playerX
-
-    def getOActionList(self):
-        return self.playerO
     
     def checkWin(self, side):
         handSet = set(side)
         return any(win.issubset(handSet) for win in self.winState)
-    
-    def isDone(self):
-        return self.checkWin(self.playerO) or self.checkWin(self.playerX) or self.count >= 9
 
     def getReward(self, action, player):
+
+        #select reciever of the reward
         if player == "playerO":
             receiver = self.playerO
             opponent = self.playerX
@@ -45,19 +38,20 @@ class game():
         done = True
         reward = -0.1  # Default penalty to encourage active playing
 
-        # Winning
+        # winning
         if self.checkWin(receiver):
-            reward = 0.7  # Increase reward for winning
+            reward = 0.7  
             if len(receiver) <= 4:
-                reward += 0.3
+                reward += 0.3 #better reward for fast win
+        #losing 
         elif self.checkWin(opponent):
-            reward = -0.7  # Increase penalty for opponent winning
-            if len(receiver) <= 3:
-                reward -= 0.3  
+            reward = -0.7 
+            if len(receiver) <= 2:
+                reward -= 0.3  #larger punishment for fast loss
 
-        # Drawing
+        # Draw
         elif self.count >= 9:
-            reward = 0.5  # Reward for a draw
+            reward = 0.6 
         else:
             done = False
             # Encourage center and corner moves

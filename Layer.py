@@ -11,10 +11,6 @@ class layer():
     def getLayer(self):
         return self.layer
 
-    #debug remove later
-    def dispLayer(self):
-        print(self.layer)
-
 class inputLayer(layer):
 
     def __init__(self, numNodes):
@@ -95,8 +91,6 @@ class outputLayer(hiddenLayer):
     def forwardPass(self, inputLayer):
         #self.layer = wx + b
         self.layer = self.weights.dot(inputLayer.getLayer()) + self.bias
-        #self.originalOutput = self.layer.copy()
-        #self.layer = np.tanh(self.layer)
 
     def backwardPass(self, lastLayer, learningRate, loss):
         # Get delta from the loss (TD error)
@@ -115,7 +109,6 @@ class outputLayer(hiddenLayer):
     
     def getDelta(self, loss):
         # delta = loss * derivative of tanh
-        #derTanh = 1 - np.tanh(self.originalOutput) ** 2
         return loss #* derTanh
 
 

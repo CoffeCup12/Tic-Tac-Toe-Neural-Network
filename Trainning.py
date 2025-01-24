@@ -100,10 +100,6 @@ for episode in range(totalEpisodes):
         actionO = getAction(qNetPlayerO, actionSpace, currentStateO)
         myGame.playerOMove(actionO)
 
-        # if episode % 100 == 0:
-        #     displayBoard(myGame.getBoard())
-        #     print()
-
         #get reward for this action
         rewardO, doneO = myGame.getReward(actionO, "playerO")
 
@@ -122,9 +118,6 @@ for episode in range(totalEpisodes):
         actionSpace = myGame.getActionSpace(currentStateX)
         actionX = getAction(qNetPlayerX, actionSpace, currentStateX)
         myGame.playerXMove(actionX)
-        # if episode % 100 == 0:
-        #     displayBoard(myGame.getBoard())
-        #     print()
 
         #get reward for this action
         rewardX, doneX = myGame.getReward(actionX, "playerX")
@@ -173,17 +166,6 @@ for episode in range(totalEpisodes):
         memoryX.append(modifedMemo)
     # print(memoryX)
     # print(memoryO)
-
-    # for state, action, reward, nextState, done in memoryO:
-    #     displayBoard(state)
-    #     print(action)
-    #     print(reward)
-    #     if nextState is not None:
-    #         displayBoard(nextState)
-    #     else:
-    #         print("None")
-    #     print(done)
-    #     print()
 
     # train both models
     train(qNetPlayerX, targetNetX, memoryX, learningRate)

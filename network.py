@@ -14,8 +14,11 @@ class netWork:
         return self.name
     
     def processInput(self, state):
-    
+        #create new input layout 
         feed = np.zeros((27,1))
+
+        #for each block, there exist 3 corresponding positons, the top is 1 if X occupied, 
+        # mid is 1 is blank, bottom is 1 if O occupied 
         for i in range(9):
 
             top = i * 3
@@ -33,17 +36,23 @@ class netWork:
 
     
     def forwardCycle(self, inputRaw):
+        #get processed input
         input = self.processInput(inputRaw)
+        #reset input layer
         self.inputLayer.resetLayer(input)
+        #forward pass
         self.h1.forwardPass(self.inputLayer)
         self.h2.forwardPass(self.h1)
         self.outputLayer.forwardPass(self.h2)
+        #return output 
         return self.outputLayer.getLayer()
     
     def backpropagation(self, loss, learningRate):
+        #store weight before backpropagation
         weightOut = self.outputLayer.getWeight()
         weighth2 = self.h2.getWeight()
 
+        #backward pass
         self.outputLayer.backwardPass(self.h2, learningRate, loss)
         nextDelta = self.h2.backwardPass(self.h1, weightOut, loss, learningRate)
         self.h1.backwardPass(self.inputLayer, weighth2, nextDelta, learningRate)
@@ -76,6 +85,8 @@ class netWork:
         self.outputLayer.setBias(np.array(model.get('outputBias')))
     
     def transferFrom(self, source):
+
+        #transfer all weights and bias from source 
         self.h1.setWeight(source.h1.getWeight())
         self.h2.setWeight(source.h2.getWeight())
         self.outputLayer.setWeight(source.outputLayer.getWeight())
