@@ -5,18 +5,18 @@ import random
 from collections import deque
 
 # Hyperparameters
-batchSize = 256
-gamma = 0.99
+batchSize = 128
+gamma = 0.8
 epsMax = 1
 eps = epsMax
 epsMin = 0.1
 # epsDecay = 0.001
 epsDecay = 0.000001
-targetUpdate = 100
-memorySize = 1000000
+targetUpdate = 1000
+memorySize = 10000
 totalEpisodes = 10000 
-learningRate = 1
-learningRateDecay = 0.000001
+learningRate = 0.000025
+learningRateDecay = 0.001
 step = 0
 
 # Initialize networks and memory
@@ -31,14 +31,8 @@ memoryX = deque(maxlen=memorySize)
 
 myGame = Game.game()
 
-
-def getRidOfInvalidActions(qValues, actionSpace):
-    mask = np.zeros_like(qValues, dtype=bool)
-    mask[actionSpace] = True
-    qValues[~mask] = -1000
-
-
 def train(qNet, targetNet, memory, learningRate):
+
     if len(memory) > batchSize:
 
         # Take sample batch based on reward
@@ -53,18 +47,11 @@ def train(qNet, targetNet, memory, learningRate):
             targetQs[action] = reward
             if not done:
                 nextQs = targetNet.forwardCycle(nextState)
-                actionSpace = myGame.getActionSpace(nextState)
-                getRidOfInvalidActions(nextQs, actionSpace)
-
                 targetQs[action] += gamma * np.max(nextQs)
 
-            getRidOfInvalidActions(targetQs, myGame.getActionSpace(state))
-
             loss = targetQs - predictedQs
-            # l2Loss = 1e-3 * np.sum(np.square(predictedQs))
-            # totalLoss = loss + l2Loss
-            
             qNet.backpropagation(loss, learningRate)
+         
 
 def getAction(qNet,actionSpace, currentState):
     if np.random.rand() <= eps:
@@ -73,6 +60,7 @@ def getAction(qNet,actionSpace, currentState):
         qValues = qNet.forwardCycle(currentState)
         action = myGame.getPredictAction(actionSpace, qValues)  # Exploit
         #action = np.argmax(qValues)
+        #print(qValues)
     return action
 
 #debug function to show the board
@@ -84,7 +72,7 @@ def displayBoard(board):
 for episode in range(totalEpisodes):
     
     #for debug purposes
-    if(episode % 100 == 0):
+    if(episode % 10 == 0):
         displayBoard(myGame.getBoard())
         print("Episode: ", episode)
         print("epsilon ", eps)
@@ -151,9 +139,9 @@ for episode in range(totalEpisodes):
         if doneX:
             break
 
-        #train both models
-        train(qNetPlayerX, targetNetX, memoryX, learningRate)
-        train(qNetPlayerO, targetNetO, memoryO, learningRate) 
+        # #train both models
+        # train(qNetPlayerX, targetNetX, memoryX, learningRate)
+        # train(qNetPlayerO, targetNetO, memoryO, learningRate) 
 
         step += 2
 
@@ -186,23 +174,35 @@ for episode in range(totalEpisodes):
     # print(memoryX)
     # print(memoryO)
 
+    # for state, action, reward, nextState, done in memoryO:
+    #     displayBoard(state)
+    #     print(action)
+    #     print(reward)
+    #     if nextState is not None:
+    #         displayBoard(nextState)
+    #     else:
+    #         print("None")
+    #     print(done)
+    #     print()
+
     # train both models
-    # train(qNetPlayerX, targetNetX, memoryX, learningRate)
-    # train(qNetPlayerO, targetNetO, memoryO, learningRate) 
+    train(qNetPlayerX, targetNetX, memoryX, learningRate)
+    train(qNetPlayerO, targetNetO, memoryO, learningRate) 
     
     #update targetNet every 1000 step 
     if step > targetUpdate:
         #update target network
         targetNetO.transferFrom(qNetPlayerO)
         targetNetX.transferFrom(qNetPlayerX)
+        
         step = 0
 
     # epsilon decay
     if eps > epsMin:
         eps = epsMin + (eps - epsMin) * np.exp(-epsDecay * episode)
-    #learning rate decay
-    if learningRate > 0.01:
-        learningRate *= 1 / (1 + learningRateDecay * episode)
+    # #learning rate decay
+    # if learningRate > 0.00001:
+    #     learningRate *= 1 / (1 + learningRateDecay * episode)
 
 qNetPlayerO.storeModel("ModelO.json")
 qNetPlayerX.storeModel("ModelX.json")

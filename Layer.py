@@ -27,7 +27,7 @@ class hiddenLayer(layer):
         super().__init__(numNodes)
 
         #generate random weights and bias
-        self.weights = np.random.randn(numNodes, numNodesLast) 
+        self.weights = np.random.randn(numNodes, numNodesLast)
         self.bias = np.random.randn(numNodes, 1)
         self.originalOutput = np.zeros((numNodes, 1))
     
@@ -38,20 +38,24 @@ class hiddenLayer(layer):
         #leaky RELU activation function
         self.layer[self.layer < 0] *= 0.01
 
-    # Other methods remain unchanged...
+    def clippingGradient(self, gradW, gradB):
+        # Clip gradients to avoid exploding gradients
+        max_grad = 1 
+        gradW = np.clip(gradW, -max_grad, max_grad) 
+        gradB = np.clip(gradB, -max_grad, max_grad)
+
+        return gradW, gradB
 
     def backwardPass(self, lastLayer, nextLayer, nextDelta, learningRate):
         # Get delta
         delta = self.getDelta(nextLayer, nextDelta)
-        
+
         # Calculate gradients
         gradW = np.dot(delta, np.transpose(lastLayer.getLayer()))
         gradB = delta
 
         # Clip gradients to avoid exploding gradients
-        max_grad = 1.0 
-        gradW = np.clip(gradW, -max_grad, max_grad) 
-        gradB = np.clip(gradB, -max_grad, max_grad)
+        gradW, gradB = self.clippingGradient(gradW, gradB)
 
         # Update weights and bias using gradient descent
         self.weights -= learningRate * gradW
@@ -91,6 +95,8 @@ class outputLayer(hiddenLayer):
     def forwardPass(self, inputLayer):
         #self.layer = wx + b
         self.layer = self.weights.dot(inputLayer.getLayer()) + self.bias
+        #self.originalOutput = self.layer.copy()
+        #self.layer = np.tanh(self.layer)
 
     def backwardPass(self, lastLayer, learningRate, loss):
         # Get delta from the loss (TD error)
@@ -101,9 +107,7 @@ class outputLayer(hiddenLayer):
         gradB = delta
 
         # Clip gradients to avoid exploding gradients
-        max_grad = 1.0 
-        gradW = np.clip(gradW, -max_grad, max_grad) 
-        gradB = np.clip(gradB, -max_grad, max_grad)
+        gradW, gradB = self.clippingGradient(gradW, gradB)
         
         # Update weights and bias using gradient descent
         self.weights -= learningRate * gradW
@@ -111,7 +115,8 @@ class outputLayer(hiddenLayer):
     
     def getDelta(self, loss):
         # delta = loss * derivative of tanh
-        return loss
+        #derTanh = 1 - np.tanh(self.originalOutput) ** 2
+        return loss #* derTanh
 
 
         

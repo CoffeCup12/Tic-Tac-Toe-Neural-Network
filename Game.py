@@ -43,28 +43,28 @@ class game():
             opponent = self.playerO
 
         done = True
-        reward = -1 
+        reward = -0.1  # Default penalty to encourage active playing
 
         # Winning
         if self.checkWin(receiver):
-            reward = 5  
+            reward = 0.7  # Increase reward for winning
             if len(receiver) <= 4:
-                reward += 3
+                reward += 0.3
         elif self.checkWin(opponent):
-            reward = -5  
-            if len(receiver) < 3:
-                reward -= 3  
+            reward = -0.7  # Increase penalty for opponent winning
+            if len(receiver) <= 3:
+                reward -= 0.3  
 
         # Drawing
         elif self.count >= 9:
-            reward = 5  # Reward for a draw
+            reward = 0.5  # Reward for a draw
         else:
             done = False
             # Encourage center and corner moves
             if action == 4: 
-                reward = 2
+                reward += 0.3  # Increase reward for center move
             elif action in [0, 2, 6, 8]:  
-                reward = 1
+                reward += 0.2  # Increase reward for corner moves
 
             # Check for blocking opponent's potential winning move
             action = int(action)
@@ -73,12 +73,15 @@ class game():
 
             for win in self.winState:
                 if len(win & opponentHand) == 2 and action in win:
-                    reward = 7  # High reward for blocking a winning move
+                    reward = 0.8  # High reward for blocking a winning move
                     break
                 elif len(win & opponentHand) == 2 and len(win & receiverHand) == 0:
-                    reward -= 7  # Penalty for missing a block
+                    reward = -0.8  # Increase penalty for missing a block
+                # elif len(win & receiverHand) == 2 and len(win & opponentHand) == 0:
+                #     reward += 0.5  # Increase reward for going for the win
 
         return reward, done
+
 
     
     def getActionSpace(self, state):
