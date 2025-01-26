@@ -1,6 +1,5 @@
 from flask import Flask, request, jsonify, render_template
 import Game
-import network
 
 myGame = Game.backend()
 app = Flask(__name__)
