@@ -1,67 +1,75 @@
-import network
+import network1
 import Game
 import numpy as np    
 import random
+import torch
+import torch.nn as nn
+import torch.optim as optim
 from collections import deque
 
 # Hyperparameters
-batchSize = 128
+batchSize = 64
 gamma = 0.8
 epsMax = 1
 eps = epsMax
 epsMin = 0.1
 # epsDecay = 0.001
-epsDecay = 0.000001
+epsDecay = 0.00001
 targetUpdate = 1000
 memorySize = 10000
 totalEpisodes = 10000 
-learningRate = 0.000025
+learningRate = 0.0001
 learningRateDecay = 0.001
 step = 0
 
 # Initialize networks and memory
-qNetPlayerO = network.netWork("playerO")
-targetNetO = network.netWork("targetO")
+qNetPlayerO = network1.netWork()#.to("xpu")
+targetNetO = network1.netWork()#.to("xpu")
 
-qNetPlayerX = network.netWork("playerX")
-targetNetX = network.netWork("targetX")
+qNetPlayerX = network1.netWork()#.to("xpu")
+targetNetX = network1.netWork()#.to("xpu")
+
+criteration = nn.MSELoss()#.to("xpu")
+optimizerO = optim.SGD(qNetPlayerO.parameters(), lr = learningRate, momentum= 0.9)
+optimizerX = optim.SGD(qNetPlayerX.parameters(), lr = learningRate, momentum= 0.9)
 
 memoryO = deque(maxlen=memorySize)
 memoryX = deque(maxlen=memorySize)
 
 myGame = Game.game()
 
-def train(qNet, targetNet, memory, learningRate):
+def train(qNet, targetNet, memory, optimizer):
 
     if len(memory) > batchSize:
 
         # Take sample batch based on reward
-        prioritizedMemory = sorted(memory, key=lambda x: x[2], reverse=True) # Sort by reward
-        sampleBatch = random.sample(prioritizedMemory, batchSize)
+        #prioritizedMemory = sorted(memory, key=lambda x: x[2], reverse=True) # Sort by reward
+        sampleBatch = random.sample(memory, batchSize)
         
         for state, action, reward, nextState, done in sampleBatch:
 
-            predictedQs = qNet.forwardCycle(state)
-            targetQs = predictedQs.copy()
+            predictedQs = qNet.forward(state)[0]
+            targetQs = predictedQs.clone().detach()
             
             targetQs[action] = reward
             if not done:
-                nextQs = targetNet.forwardCycle(nextState)
-                targetQs[action] += gamma * np.max(nextQs)
+                nextQs = targetNet.forward(nextState)
+                maxElement, _ = torch.max(nextQs, 1)
+                targetQs[action] += gamma * maxElement.item()
 
-            loss = targetQs - predictedQs
-            qNet.backpropagation(loss, learningRate)
-         
+            optimizer.zero_grad()
+            loss = criteration(predictedQs, targetQs)
+            
+            loss.backward()
+            optimizer.step()
 
 def getAction(qNet,actionSpace, currentState):
     if np.random.rand() <= eps:
         action = np.random.choice(actionSpace)  # Explore
     else:
-        qValues = qNet.forwardCycle(currentState)
-        action = myGame.getPredictAction(actionSpace, qValues)  # Exploit
-        #action = np.argmax(qValues)
-        #print(qValues)
-    return action
+        qValues = qNet.forward(currentState)
+        _, action = torch.max(qValues,1)  # Exploit
+    return action.item()
 
 #debug function to show the board
 def displayBoard(board):
@@ -72,7 +80,7 @@ def displayBoard(board):
 for episode in range(totalEpisodes):
     
     #for debug purposes
-    if(episode % 10 == 0):
+    if(episode % 100 == 0):
         displayBoard(myGame.getBoard())
         print("Episode: ", episode)
         print("epsilon ", eps)
@@ -88,27 +96,26 @@ for episode in range(totalEpisodes):
     actionX = getAction(qNetPlayerX, actionSpace, currentStateX)
     myGame.playerXMove(actionX)
 
-    #get reward for this action
-    rewardX, doneX = myGame.getReward(actionX, "playerX")
-    doneO = False
+    #get reward of that move
+    rewardX, doneX = myGame.getReward(actionX, actionSpace, "playerX")
+    
+    step += 1
 
     for i in range(8):
 
         #move player O
-        currentStateO = myGame.getBoard().copy()
+        currentStateO = myGame.getBoard()
         actionSpace = myGame.getActionSpace(currentStateO)
         actionO = getAction(qNetPlayerO, actionSpace, currentStateO)
         myGame.playerOMove(actionO)
+        step += 1
 
         #get reward for this action
-        rewardO, doneO = myGame.getReward(actionO, "playerO")
+        rewardO, doneO = myGame.getReward(actionO, actionSpace, "playerO")
 
-        #set nextState for X 
+        #store experience X
         nextStateX = myGame.getBoard()
-
-        #store experience for player X 
-        experience = currentStateX, actionX, rewardX, nextStateX, doneX
-        memoryX.append(experience)
+        memoryX.append((currentStateX, actionX, rewardX, nextStateX, doneX))
 
         if doneO:
             break
@@ -118,65 +125,58 @@ for episode in range(totalEpisodes):
         actionSpace = myGame.getActionSpace(currentStateX)
         actionX = getAction(qNetPlayerX, actionSpace, currentStateX)
         myGame.playerXMove(actionX)
+        step += 1
 
         #get reward for this action
-        rewardX, doneX = myGame.getReward(actionX, "playerX")
+        rewardX, doneX = myGame.getReward(actionX, actionSpace, "playerX")
 
         #set nextState for O
         nextStateO = myGame.getBoard()
 
         #store experience for player O
-        experience = currentStateO, actionO, rewardO, nextStateO, doneO
-        memoryO.append(experience)
+        memoryO.append((currentStateO, actionO, rewardO, nextStateO, doneO))
 
         if doneX:
             break
 
-        # #train both models
-        # train(qNetPlayerX, targetNetX, memoryX, learningRate)
-        # train(qNetPlayerO, targetNetO, memoryO, learningRate) 
-
-        step += 2
-
     #if player x wins or draw
     if doneX:
-        #store win memeory for X 
-        reward, done = myGame.getReward(actionX, "playerX")
-        memoryX.append((currentStateX, actionX, reward, None, True))
 
-        #store lose memory for O
-        reward, done = myGame.getReward(actionO, "playerO")
+        #store memory for x
+        memoryX.append((currentStateX, actionX, rewardX, None, True))
+
+        #store memory for O
+        reward, done = myGame.getReward(actionO, actionSpace, "playerO")
 
         lastMemo = memoryO.pop()
-        modifedMemo = currentStateO, actionO, reward, None,True
+        modifedMemo = lastMemo[0], lastMemo[1], reward, None,True
         
         memoryO.append(modifedMemo)
         
     else:
-        #store win memeory for O 
-        reward, done = myGame.getReward(actionX, "playerO")
-        memoryO.append((currentStateO, actionO, reward, None, True))
+        #store memory for O
+        memoryO.append((currentStateO, actionO, rewardO, None, True))
 
         #store lose memory for X
-        reward, done = myGame.getReward(actionX, "playerX")
+        reward, done = myGame.getReward(actionO, actionSpace, "playerX")
 
         lastMemo = memoryX.pop()
-        modifedMemo = currentStateX, actionX, reward, None, True
-
+        modifedMemo = lastMemo[0], lastMemo[1], reward, None,True
+        
         memoryX.append(modifedMemo)
+
     # print(memoryX)
     # print(memoryO)
 
     # train both models
-    train(qNetPlayerX, targetNetX, memoryX, learningRate)
-    train(qNetPlayerO, targetNetO, memoryO, learningRate) 
+    train(qNetPlayerO, targetNetO, memoryO, optimizerO)
+    train(qNetPlayerX, targetNetX, memoryX, optimizerX) 
     
     #update targetNet every 1000 step 
     if step > targetUpdate:
         #update target network
-        targetNetO.transferFrom(qNetPlayerO)
-        targetNetX.transferFrom(qNetPlayerX)
-        
+        targetNetO.load_state_dict(qNetPlayerO.state_dict())
+        targetNetX.load_state_dict(qNetPlayerX.state_dict())
         step = 0
 
     # epsilon decay
@@ -186,6 +186,6 @@ for episode in range(totalEpisodes):
     # if learningRate > 0.00001:
     #     learningRate *= 1 / (1 + learningRateDecay * episode)
 
-qNetPlayerO.storeModel("ModelO.json")
-qNetPlayerX.storeModel("ModelX.json")
+torch.save(qNetPlayerO.state_dict(), 'modelO.pth')
+torch.save(qNetPlayerX.state_dict(), 'modelX.pth')
 print("Training Complete")
