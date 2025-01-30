@@ -38,9 +38,9 @@ class game():
             opponent = self.playerX
         
         if action not in actionSpace:
-            reward = -20  
+            reward = -30  
         else:
-            reward = 1
+            reward = 3
             # winning
             if self.checkWin(receiver):
                 reward = 10

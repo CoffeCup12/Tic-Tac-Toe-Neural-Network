@@ -17,7 +17,7 @@ epsMin = 0.1
 epsDecay = 0.00001
 targetUpdate = 1000
 memorySize = 10000
-totalEpisodes = 10000 
+totalEpisodes = 100000 
 learningRate = 0.0001
 learningRateDecay = 0.001
 step = 0
@@ -71,21 +71,8 @@ def getAction(qNet,actionSpace, currentState):
         _, action = torch.max(qValues,1)  # Exploit
     return action.item()
 
-#debug function to show the board
-def displayBoard(board):
-    board = board.reshape(-1,1).tolist()
-    for i in range(3):
-        print(board[i*3], board[i*3+1], board[i*3+2])
 
 for episode in range(totalEpisodes):
-    
-    #for debug purposes
-    if(episode % 100 == 0):
-        displayBoard(myGame.getBoard())
-        print("Episode: ", episode)
-        print("epsilon ", eps)
-        print("learning Rate", learningRate)
-        print()
 
     #reset game
     myGame.reset()
